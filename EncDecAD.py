@@ -1,6 +1,7 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
+import numpy as np
 from preprocessing import PreprocessClass
 
 
@@ -22,13 +23,14 @@ class EncDecAdClass(chainer.Chain):
         accum_loss = None
         for data50dim in self.train:
             for data in data50dim:
-                h = self.H(data)
+                h = self.H(np.array([[data]], dtype=np.float32))
             next_data = self.W(h)
-            accum_loss = F.mean_squared_error(next_data, data50dim[-1]) # 最初の二乗誤差
+            # import ipdb; ipdb.set_trace()
+            accum_loss = F.mean_squared_error(next_data, np.array([[data50dim[-1]]], dtype=np.float32))  # 最初の二乗誤差
             for i in reversed(range(49)): # 一番最後のものは上で計算済み
                 h = self.H(next_data)
                 next_data = self.W(h)
-                accum_loss += F.mean_squared_error(next_data, data50dim[i])
+                accum_loss += F.mean_squared_error(next_data, np.array([[data50dim[i]]], dtype=np.float32))
 
         return accum_loss
 
