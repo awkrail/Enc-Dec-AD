@@ -1,8 +1,15 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
+from chainer import cuda
 import numpy as np
 from preprocessing import PreprocessClass
+
+"""
+    TODO: Batchへ対応させる
+"""
+
+xp = cuda.cupy
 
 
 class EncDecAdClass(chainer.Chain):
@@ -17,20 +24,21 @@ class EncDecAdClass(chainer.Chain):
         self.train = self.preprocess.train_csv0
         self.epoch = epoch
 
+    # forward, calculate the loss
     def forward(self):
         self.H.reset_state()
         h = None
         accum_loss = None
         for data50dim in self.train:
             for data in data50dim:
-                h = self.H(np.array([[data]], dtype=np.float32))
+                h = self.H(xp.array([[data]], dtype=xp.float32))
             next_data = self.W(h)
             # import ipdb; ipdb.set_trace()
-            accum_loss = F.mean_squared_error(next_data, np.array([[data50dim[-1]]], dtype=np.float32))  # 最初の二乗誤差
+            accum_loss = F.mean_squared_error(next_data, xp.array([[data50dim[-1]]], dtype=np.float32))  # 最初の二乗誤差
             for i in reversed(range(49)): # 一番最後のものは上で計算済み
                 h = self.H(next_data)
                 next_data = self.W(h)
-                accum_loss += F.mean_squared_error(next_data, np.array([[data50dim[i]]], dtype=np.float32))
+                accum_loss += F.mean_squared_error(next_data, xp.array([[data50dim[i]]], dtype=np.float32))
 
         return accum_loss
 
@@ -39,6 +47,7 @@ if __name__ == '__main__':
     # setup model
     epoch = 100
     model = EncDecAdClass(1, 10, epoch)
+    model.to_gpu()
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
@@ -46,7 +55,7 @@ if __name__ == '__main__':
         loss = model.forward()
         loss.backward()
         optimizer.update()
-        print("%d epoch" % i, str(loss))
+        print("%d epoch" % i, str(loss.data))
 
 
 
