@@ -38,9 +38,10 @@ class EncDecAD(chainer.Chain):
         # last h_t is used for first decoder h_t initialization
         #import ipdb; ipdb.set_trace()
         bar_h_i_list = self.h_i_list(one_line)
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         last_h_i = bar_h_i_list[-1]
-        c_t = self.c_t(bar_h_i_list, last_h_i[0])
+        c_t = self.c_t(bar_h_i_list, last_h_i)
+        print(c_t)
 
     def h_i_list(self, line, test=False):
         h_i_list = []
@@ -54,11 +55,12 @@ class EncDecAD(chainer.Chain):
 
     def c_t(self, bar_h_i_list, h_t, test=False):
         s = 0.0
+        #import ipdb; ipdb.set_trace()
         for bar_h_i in bar_h_i_list:
             s += np.exp(h_t.dot(bar_h_i))
         c_t = np.zeros(30)
 
-        for bar_h_i in h_i_list:
+        for bar_h_i in bar_h_i_list:
             alpha_t_i = np.exp(h_t.dot(bar_h_i)) / s
             c_t += alpha_t_i * bar_h_i
 
