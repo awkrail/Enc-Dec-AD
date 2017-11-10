@@ -1,4 +1,5 @@
 .DS_Store
 .idea/*
-ex_log
+data
+notebook
 __pycache__

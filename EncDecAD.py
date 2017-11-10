@@ -1,69 +1,82 @@
 import chainer
+from chainer import Variable, optimizers, serializers, Chain
 import chainer.functions as F
 import chainer.links as L
 from chainer import cuda
 import numpy as np
-from preprocessing import PreprocessClass
 
-"""
-    TODO: Batchへ対応させる
-"""
+class EncDecAD(chainer.Chain):
+    def __init__(self, train_source="data/anormaly_data/train_and_test/train.npy", test_source="data/anormaly_data/train_and_test/test.npy"):
+        self.train_source = np.load(train_source)
+        self.test_source = np.load(test_source)
+        
+        super(EncDecAD, self).__init__(
+                H = L.LSTM(1, 30),
+                Wc1 = L.Linear(30, 30),
+                Wc2 = L.Linear(30, 30),
+                W = L.Linear(30, 1)
+                )
 
-xp = cuda.cupy
+    def learn(self):
+        data_num = self.train_source.shape[0]
+        #import ipdb;
+        #ipdb.set_trace()
+        # 一つの行ごとに回す
+        for i in range(data_num):
+            one_line = self.train_source[i]
+            self.H.reset_state()
+            self.zerograds()
+            # calculate train loss
+            loss = self.loss(one_line)
+            loss.backward()
+            loss.unchain_backward()
+            self.optimizer.update()
+
+    def loss(self, one_line):
+        # Encoder Side
+        # calculate all h_t
+        # last h_t is used for first decoder h_t initialization
+        #import ipdb; ipdb.set_trace()
+        bar_h_i_list = self.h_i_list(one_line)
+        import ipdb; ipdb.set_trace()
+        last_h_i = bar_h_i_list[-1]
+        c_t = self.c_t(bar_h_i_list, last_h_i[0])
+
+    def h_i_list(self, line, test=False):
+        h_i_list = []
+        volatile = 'on' if test else 'off'
+        #import ipdb; ipdb.set_trace()
+        for data in line:
+            # dataはバッチ処理に対応させるために二次元にする必要がある
+            h_i = self.H(Variable(np.array([[data]], dtype=np.float32), volatile=volatile))
+            h_i_list.append(np.copy(h_i.data[0]))
+        return h_i_list
+
+    def c_t(self, bar_h_i_list, h_t, test=False):
+        s = 0.0
+        for bar_h_i in bar_h_i_list:
+            s += np.exp(h_t.dot(bar_h_i))
+        c_t = np.zeros(30)
+
+        for bar_h_i in h_i_list:
+            alpha_t_i = np.exp(h_t.dot(bar_h_i)) / s
+            c_t += alpha_t_i * bar_h_i
+
+        volatile = 'on' if test else 'off'
+        c_t = Variable(np.array([c_t]).astype(np.float32), volatile=volatile)
+        return c_t
 
 
-class EncDecAdClass(chainer.Chain):
-    def __init__(self, m, c, epoch):
-        super().__init__(
-            H=L.LSTM(m, c),
-            W=L.Linear(c, m)
-        )
-        self.preprocess = PreprocessClass()
-        self.preprocess.load_csv()
-        self.preprocess.divide_train_and_test()
-        self.train = self.preprocess.train_csv0
-        self.epoch = epoch
+if __name__ == "__main__":
+    model = EncDecAD()
+    epoch_num = 100
 
-    # forward, calculate the loss
-    def forward(self):
-        self.H.reset_state()
-        h = None
-        accum_loss = None
-        for data50dim in self.train:
-            for data in data50dim:
-                h = self.H(xp.array([[data]], dtype=xp.float32))
-            next_data = self.W(h)
-            # import ipdb; ipdb.set_trace()
-            accum_loss = F.mean_squared_error(next_data, xp.array([[data50dim[-1]]], dtype=np.float32))  # 最初の二乗誤差
-            for i in reversed(range(49)): # 一番最後のものは上で計算済み
-                h = self.H(next_data)
-                next_data = self.W(h)
-                accum_loss += F.mean_squared_error(next_data, xp.array([[data50dim[i]]], dtype=np.float32))
+    for epoch in range(epoch_num):
+        print("{0} / {1} epoch start".format(epoch+1, epoch_num))
 
-        return accum_loss
-
-
-if __name__ == '__main__':
-    # setup model
-    epoch = 100
-    model = EncDecAdClass(1, 10, epoch)
-    model.to_gpu()
-    optimizer = chainer.optimizers.Adam()
-    optimizer.setup(model)
-
-    for i in range(model.epoch):
-        loss = model.forward()
-        loss.backward()
-        optimizer.update()
-        print("%d epoch" % i, str(loss.data))
-
-
-
-
-
-
-
-
-
-
-
+        # start training
+        model.learn()
+        modelfile = "encdec" + str(epoch) + ".model"
+        model.save_model(modelfile)
+        
+        print("{0} / {1} epoch finishied".format(epoch+1, epoch_num))
