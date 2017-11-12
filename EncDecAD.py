@@ -58,7 +58,6 @@ class EncDecAD(chainer.Chain):
     def encoder_h_i_list(self, line, test=False):
         h_i_list = []
         volatile = 'on' if test else 'off'
-        #import ipdb; ipdb.set_trace()
         for data in line:
             # dataはバッチ処理に対応させるために二次元にする必要がある
             h_i = self.H(Variable(np.array([[data]], dtype=np.float32), volatile=volatile))
@@ -67,7 +66,6 @@ class EncDecAD(chainer.Chain):
 
     def decoder_x_i_list(self,last_h_i, length, test=False):
         decode_x_i_list = []
-        #import ipdb; ipdb.set_trace()
         x_i = self.W(Variable(np.array([last_h_i], dtype=np.float32), volatile=test))
         decode_x_i_list.append(x_i)
         for i in range(1, length):
