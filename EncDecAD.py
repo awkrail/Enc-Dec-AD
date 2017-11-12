@@ -21,9 +21,6 @@ class EncDecAD(chainer.Chain):
 
     def learn(self):
         data_num = self.train_source.shape[0]
-        #import ipdb;
-        #ipdb.set_trace()
-        # 一つの行ごとに回す
         for i in range(data_num):
             one_line = self.train_source[i]
             self.H.reset_state()
@@ -40,29 +37,25 @@ class EncDecAD(chainer.Chain):
         # Encoder Side
         # calculate all h_t
         # last h_t is used for first decoder h_t initialization
-        #import ipdb; ipdb.set_trace()
-        bar_h_i_list = self.h_i_list(one_line)
-        length = one_line.shape[0]
-        #import ipdb; ipdb.set_trace()
-        last_h_i = bar_h_i_list[-1]
+        bar_h_i_list = self.encoder_h_i_list(one_line)
         # c_t = self.c_t(bar_h_i_list, last_h_i)
-        # import ipdb; ipdb.set_trace();
 
         # Decoder Side
         # first_decode is made with last_h_i and W
+        length = one_line.shape[0]
+        last_h_i = bar_h_i_list[-1]
         bar_x_i_list = self.decoder_x_i_list(last_h_i,length, test=False)
 
         # calculate the loss
         # loss is defined mean squared loss input and decoder x_i
         accum_loss = None
         for x_i, dec_x_i in zip(one_line, bar_x_i_list):
-            #import ipdb; ipdb.set_trace()
             x_i = np.array([[x_i]], dtype=np.float32)
             loss = F.mean_squared_error(x_i, dec_x_i)
             accum_loss = loss if accum_loss is None else accum_loss + loss
         return accum_loss
 
-    def h_i_list(self, line, test=False):
+    def encoder_h_i_list(self, line, test=False):
         h_i_list = []
         volatile = 'on' if test else 'off'
         #import ipdb; ipdb.set_trace()
