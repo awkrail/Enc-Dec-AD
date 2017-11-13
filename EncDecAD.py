@@ -3,7 +3,10 @@ from chainer import Variable, optimizers, serializers, Chain
 import chainer.functions as F
 import chainer.links as L
 from chainer import cuda
+from chainer import serializers
+
 import numpy as np
+
 
 class EncDecAD(chainer.Chain):
     def __init__(self, train_source="data/anormaly_data/train_and_test/train.npy", test_source="data/anormaly_data/train_and_test/test.npy"):
