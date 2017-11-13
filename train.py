@@ -12,6 +12,8 @@ parser.add_argument('--gpu', '-g', default=-1, type=int,
                     help='GPU ID')
 parser.add_argument('--epoch', '-e', default=50, type=int,
                     help='train epoch number')
+parser.add_argument('--batch_size', '-b', default=20, type=int,
+                    help='batch processing number')
 args = parser.parse_args()
 
 # model
@@ -27,8 +29,7 @@ if args.gpu >= 0:
 epoch_num = args.epoch
 for epoch in range(epoch_num):
     print('{0} / {1} epoch start'.format(epoch+1, epoch_num))
-
-    model.learn()
+    model.learn(args.batch_size)
     modelfile = 'model/encdec' + str(epoch) + '.model'
     serializers.save_npz(modelfile, model)
     print('{0} / {1} epoch finished'.format(epoch+1, epoch_num))
