@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
         # start training
         model.learn()
-        modelfile = "encdec" + str(epoch) + ".model"
-        model.save_model(modelfile)
+        modelfile = "model/encdec" + str(epoch) + ".npz"
+        serializers.save_npz(modelfile, model)        
         
         print("{0} / {1} epoch finishied".format(epoch+1, epoch_num))
