@@ -60,13 +60,13 @@ class EncDecAD(chainer.Chain):
         volatile = 'on' if test else 'off'
         for data in line:
             # dataはバッチ処理に対応させるために二次元にする必要がある
-            h_i = self.H(Variable(np.array([[data]], dtype=np.float32), volatile=volatile))
+            h_i = self.H(Variable(np.array([[data]], dtype=np.float32)))
             h_i_list.append(np.copy(h_i.data[0]))
         return h_i_list
 
     def decoder_x_i_list(self,last_h_i, length, test=False):
         decode_x_i_list = []
-        x_i = self.W(Variable(np.array([last_h_i], dtype=np.float32), volatile=test))
+        x_i = self.W(Variable(np.array([last_h_i], dtype=np.float32)))
         decode_x_i_list.append(x_i)
         for i in range(1, length):
             h_i = self.H(x_i)
@@ -92,7 +92,7 @@ class EncDecAD(chainer.Chain):
 
 if __name__ == "__main__":
     model = EncDecAD()
-    epoch_num = 100
+    epoch_num = 1000
 
     for epoch in range(epoch_num):
         print("{0} / {1} epoch start".format(epoch+1, epoch_num))
