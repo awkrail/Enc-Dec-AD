@@ -1,6 +1,8 @@
 # Enc-Dec-AD
 Anormaly Detection With Deep Learning Encoder Decoder(https://arxiv.org/abs/1607.00148?context=cs)
 ![EncoderDecoder](https://github.com/misogil0116/Enc-Dec-AD/blob/cf0ff4cbb45ba4c0e426906901694c7d2eb889e4/image/encdec.png "image")
+This image is quote from page.2
+
 # Usage
 you make directory like this
 ```
