@@ -69,7 +69,7 @@ class EncDecAD(chainer.Chain):
         for i in range(col):
             x_i = x[:, i].reshape(row, 1).astype(np.float32)
             dec_x_i = bar_x_i_list[i].data.astype(np.float32)
-            loss = F.mean_squared_error(x_i, dec_x_i)
+            loss = F.mean_absolute_error(x_i, dec_x_i)
             accum_loss = loss if accum_loss is None else accum_loss + loss
         """ 
         for x_i, dec_x_i in zip(x, bar_x_i_list):
