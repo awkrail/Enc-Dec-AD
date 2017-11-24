@@ -41,7 +41,7 @@ class EncDecAD(chainer.Chain):
     def calc_gaussian_params(self):
         e_i_list = []
         # debugの時は全部で計算しない方がよさそう..
-        for one_line in self.test_source:
+        for one_line in self.test_source[:10]: # debug後は[:10]を外す
             batch_one_line = one_line.reshape(1, one_line.shape[0])
             h_i_list = self.encoder_h_i_list(batch_one_line) 
             length = batch_one_line.shape[1]
@@ -52,11 +52,11 @@ class EncDecAD(chainer.Chain):
             abs_e_i = np.abs((one_line - x_i_list))
             e_i_list.append(abs_e_i)
 
-        import ipdb; ipdb.set_trace()
         # e_i => μ, Σ
         # 縦に計算する
         e_i_np = np.array(e_i_list, dtype=np.float32)
         
+        # 要確認
         mu = np.mean(e_i_np, axis=0)
         mu_T = np.array([mu], dtype=np.float32).T
         cov = np.zeros((mu.shape[0], mu.shape[0]))
@@ -67,6 +67,7 @@ class EncDecAD(chainer.Chain):
         sigma = cov / e_i_np.shape[0]
         return mu, sigma
 
+    # calculate anormaly score (X-μ)^TΣ^(-1)(X-μ)
     def score(self, valid_X, mu, sigma):
         mu_T = np.array([[mu]], dtype=np.float32).T
         inv_sigma = np.linalg.inv(sigma) # sigmaに逆行列がない..なんてことにはならない?
