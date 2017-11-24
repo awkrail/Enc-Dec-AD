@@ -17,10 +17,9 @@ parser.add_argument('--batch_size', '-b', default=20, type=int,
 args = parser.parse_args()
 
 # model
-model = EncDecAD()
+model = EncDecAD(gpu=args.gpu)
 
 # use cuuda
-xp = cuda.cupy if args.gpu >= 0 else np
 if args.gpu >= 0:
     cuda.get_device(args.gpu).use()
     model.to_gpu()
