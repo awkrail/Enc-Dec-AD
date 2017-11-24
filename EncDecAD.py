@@ -9,9 +9,11 @@ import numpy as np
 import argparse
 
 class EncDecAD(chainer.Chain):
-    def __init__(self, train_source="data/anormaly_data/train_and_test/train.npy", test_source="data/anormaly_data/train_and_test/test.npy"):
-        self.train_source = np.load(train_source)
-        self.test_source = np.load(test_source)
+    def __init__(self, train_source="data/anormaly_data/train_and_test/train.npy", test_source="data/anormaly_data/train_and_test/test.npy", gpu=0):
+        self.gpu=gpu
+        xp = cuda.cupy if self.gpu >= 0 else np
+        self.train_source = xp.load(train_source)
+        self.test_source = xp.load(test_source)
         super(EncDecAD, self).__init__(
                 H = L.LSTM(1, 30),
                 Wc1 = L.Linear(30, 30),
@@ -115,6 +117,7 @@ class EncDecAD(chainer.Chain):
         return accum_loss
 
     def encoder_h_i_list(self, line, test=False):
+        xp = cuda.cupy if self.gpu >= 0 else np
         h_i_list = []
         volatile = 'on' if test else 'off'
         row = line.shape[0]
@@ -133,7 +136,6 @@ class EncDecAD(chainer.Chain):
 
     def decoder_x_i_list(self,last_h_i, length, test=False):
         decode_x_i_list = []
-        #x_i = self.W(Variable(np.array([last_h_i], dtype=np.float32), volatile=test))
         x_i = self.W(last_h_i)
         decode_x_i_list.append(x_i)
         for i in range(1, length):
@@ -166,10 +168,9 @@ parser.add_argument('--batch_size', '-b', default=20, type=int, help='batch proc
 args = parser.parse_args()
 
 # model
-model = EncDecAD()
+model = EncDecAD(gpu=args.gpu)
 
 # use cuda
-xp = cuda.cupy if args.gpu >= 0 else np
 if args.gpu >= 0:
     cuda.get_device(args.gpu).use()
     model.to_gpu()
