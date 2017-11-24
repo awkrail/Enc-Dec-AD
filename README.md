@@ -27,7 +27,4 @@ model = EncDecAD("train_source", "test_source")
 ```
 
 # [WIP]
-
-- with Attention
-- add batch process mode for GPU(branch batch_calculation, but something wrong..)
 - calculation of Gaussian params μ and Σ
