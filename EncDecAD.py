@@ -9,16 +9,14 @@ import numpy as np
 import argparse
 
 class EncDecAD(chainer.Chain):
-    def __init__(self, train_source="data/anormaly_data/train_and_test/train.npy", test_source="data/anormaly_data/train_and_test/test.npy", gpu=0):
+    def __init__(self, train_source="data/anormaly_data/train_and_test/train.npy", test_source="data/anormaly_data/train_and_test/test.npy", hidden_n=30, gpu=0):
         self.gpu=gpu
         xp = cuda.cupy if self.gpu >= 0 else np
         self.train_source = xp.load(train_source)
         self.test_source = xp.load(test_source)
         super(EncDecAD, self).__init__(
-                H = L.LSTM(1, 30),
-                Wc1 = L.Linear(30, 30),
-                Wc2 = L.Linear(30, 30),
-                W = L.Linear(30, 1)
+                H = L.LSTM(1, hidden_n),
+                W = L.Linear(hidden_n, 1)
                 )
         self.optimizer = optimizers.Adam()
         self.optimizer.setup(self)
@@ -77,7 +75,6 @@ class EncDecAD(chainer.Chain):
         # calculate all h_t
         # last h_t is used for first decoder h_t initialization
         bar_h_i_list = self.encoder_h_i_list(x)
-        # c_t = self.c_t(bar_h_i_list, last_h_i)
 
         # Decoder Side
         # first_decode is made with last_h_i and W
@@ -101,7 +98,6 @@ class EncDecAD(chainer.Chain):
     def encoder_h_i_list(self, line, test=False):
         xp = cuda.cupy if self.gpu >= 0 else np
         h_i_list = []
-        volatile = 'on' if test else 'off'
         row = line.shape[0]
         col = line.shape[1]
         for i in range(col):

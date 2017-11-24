@@ -14,10 +14,12 @@ parser.add_argument('--epoch', '-e', default=50, type=int,
                     help='train epoch number')
 parser.add_argument('--batch_size', '-b', default=20, type=int,
                     help='batch processing number')
+parser.add_argument('--hidden_neuron_num', '-n', default=30, type=int,
+                    help='lstm and W hidden layer neuron number')
 args = parser.parse_args()
 
 # model
-model = EncDecAD(gpu=args.gpu)
+model = EncDecAD(gpu=args.gpu, hidden_n=args.hidden_neuron_num)
 
 # use cuuda
 if args.gpu >= 0:
