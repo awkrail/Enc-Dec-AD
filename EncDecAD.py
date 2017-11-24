@@ -48,10 +48,38 @@ class EncDecAD(chainer.Chain):
             print("final loss", loss.data)
 
     def calc_gaussian_params(self):
+        e_i_list = []
         for one_line in self.test_source:
-            for x in one_line:
-                # encoderに通してdecoderされてきたもの
-                pass
+            h_i_list = self.encoder_h_i_list(one_line) 
+            length = one_line.shape[1]
+            last_h_i = h_i_list[-1]
+            x_i_list = self.decoder_x_i_list(last_h_i, length, test=True)
+
+            # calc |x_i - x_i(dec)|
+            abs_e_i = np.abs((one_line - x_i_list))
+            e_i_list.append(abs_e_i)
+
+        # e_i => μ, Σ
+        # 縦に計算する
+        e_i_np = np.array(e_i_list, dtype=np.float32)
+        
+        mu = np.mean(e_i_np, axis=0)
+        mu_T = np.array([mu], dtype=np.float32).T
+        cov = np.zeros((mu.shape[0], mu.shape[0]))
+        for e_i in e_i_np:
+            e_i_T = np.array([e_i], dtype=np.float32).T
+            sig = np.dot((e_i_T-mu_T), (e_i_T-mu_T).T)
+            cov += sig
+        sigma = cov / e_i_np.shape[0]
+        return mu, sigma
+
+    def score(self, valid_X, mu, sigma):
+        mu_T = np.array([[mu]], dtype=np.float32).T
+        inv_sigma = np.linalg.inv(sigma) # sigmaに逆行列がない..なんてことにはならない?
+        for one_line in valid_X:
+            one_line_T = np.array([[one_line]], dtype=np.float32).T
+            e_minus_mu = one_line_T - mu_T
+            yield np.dot((e_minus_mu.T, inv_sigma), e_minus_mu)
 
     def loss(self, x):
         # Encoder Side
