@@ -2,10 +2,10 @@ from EncDecAD import EncDecAD
 import sys
 import pandas as pd
 
-filename = 'model/' + sys.argv[1] 
-print('loading file path:', filename)
+#filename = 'model/' + sys.argv[1] 
+#print('loading file path:', filename)
 model = EncDecAD()
-model.load_model(filename)
+#model.load_model(filename)
 
 # calculate gaussian params
 print('calculate gaussian params from test_source...')
