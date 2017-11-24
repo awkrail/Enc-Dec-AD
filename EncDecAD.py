@@ -84,6 +84,7 @@ class EncDecAD(chainer.Chain):
             yield np.dot((e_minus_mu.T, inv_sigma), e_minus_mu)
 
     def loss(self, x):
+        xp = cuda.cupy if self.gpu >= 0 else np
         # Encoder Side
         # calculate all h_t
         # last h_t is used for first decoder h_t initialization
@@ -103,8 +104,8 @@ class EncDecAD(chainer.Chain):
         row = x.shape[0]
         col = x.shape[1]
         for i in range(col):
-            x_i = x[:, i].reshape(row, 1).astype(np.float32)
-            dec_x_i = bar_x_i_list[i].data.astype(np.float32)
+            x_i = x[:, i].reshape(row, 1).astype(xp.float32)
+            dec_x_i = bar_x_i_list[i].data.astype(xp.float32)
             loss = F.mean_squared_error(x_i, dec_x_i)
             accum_loss = loss if accum_loss is None else accum_loss + loss
         """ 
@@ -123,7 +124,7 @@ class EncDecAD(chainer.Chain):
         row = line.shape[0]
         col = line.shape[1]
         for i in range(col):
-            h_i = self.H(Variable(xp.array(line[:, i].reshape(row, 1), dtype=np.float32)))
+            h_i = self.H(Variable(xp.array(line[:, i].reshape(row, 1), dtype=xp.float32)))
             h_i_list.append(xp.copy(h_i.data))
             # これで, 各データが時系列で順番に入った時の, LSTMの内部状態が入る
         """
