@@ -35,6 +35,9 @@ class EncDecAD(chainer.Chain):
             self.optimizer.update()
             print("final loss", loss.data)
 
+    def load_model(self, path):
+        serializers.load_npz(path, self)
+
     def calc_gaussian_params(self):
         e_i_list = []
         for one_line in self.test_source:
