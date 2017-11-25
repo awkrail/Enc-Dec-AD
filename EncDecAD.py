@@ -9,7 +9,7 @@ import numpy as np
 import argparse
 
 class EncDecAD(chainer.Chain):
-    def __init__(self, train_source="data/anormaly_data/train_and_test/train.npy", test_source="data/anormaly_data/train_and_test/test.npy", hidden_n=30, gpu=0):
+    def __init__(self, train_source="data/anormaly_data/train_and_test/train.npy", test_source="data/anormaly_data/train_and_test/test.npy", hidden_n=30, gpu=-1):
         self.gpu=gpu
         xp = cuda.cupy if self.gpu >= 0 else np
         self.train_source = xp.load(train_source)
@@ -31,18 +31,22 @@ class EncDecAD(chainer.Chain):
             # calculate batch train loss
             loss = self.loss(x)
             loss.backward()
-            loss.unchain_backward()
             self.optimizer.update()
             print("final loss", loss.data)
 
+    def load_model(self, path):
+        serializers.load_npz(path, self)
+
     def calc_gaussian_params(self):
         e_i_list = []
-        for one_line in self.test_source:
-            h_i_list = self.encoder_h_i_list(one_line) 
-            length = one_line.shape[1]
+        # debugの時は全部で計算しない方がよさそう..
+        for one_line in self.test_source[:10]: # debug後は[:10]を外す
+            batch_one_line = one_line.reshape(1, one_line.shape[0])
+            h_i_list = self.encoder_h_i_list(batch_one_line) 
+            length = batch_one_line.shape[1]
             last_h_i = h_i_list[-1]
-            x_i_list = self.decoder_x_i_list(last_h_i, length, test=True)
-
+            x_i_list = [x_i.data[0][0] for x_i in self.decoder_x_i_list(last_h_i, length, test=True)]
+            x_i_list = np.array(x_i_list, dtype=np.float32)
             # calc |x_i - x_i(dec)|
             abs_e_i = np.abs((one_line - x_i_list))
             e_i_list.append(abs_e_i)
@@ -51,6 +55,7 @@ class EncDecAD(chainer.Chain):
         # 縦に計算する
         e_i_np = np.array(e_i_list, dtype=np.float32)
         
+        # 要確認
         mu = np.mean(e_i_np, axis=0)
         mu_T = np.array([mu], dtype=np.float32).T
         cov = np.zeros((mu.shape[0], mu.shape[0]))
@@ -61,6 +66,7 @@ class EncDecAD(chainer.Chain):
         sigma = cov / e_i_np.shape[0]
         return mu, sigma
 
+    # calculate anormaly score (X-μ)^TΣ^(-1)(X-μ)
     def score(self, valid_X, mu, sigma):
         mu_T = np.array([[mu]], dtype=np.float32).T
         inv_sigma = np.linalg.inv(sigma) # sigmaに逆行列がない..なんてことにはならない?
@@ -69,6 +75,7 @@ class EncDecAD(chainer.Chain):
             e_minus_mu = one_line_T - mu_T
             yield np.dot((e_minus_mu.T, inv_sigma), e_minus_mu)
 
+    # もう一回lossを見直す!
     def loss(self, x):
         xp = cuda.cupy if self.gpu >= 0 else np
         # Encoder Side
@@ -92,6 +99,7 @@ class EncDecAD(chainer.Chain):
             x_i = x[:, i].reshape(row, 1).astype(xp.float32)
             dec_x_i = bar_x_i_list[i].data.astype(xp.float32)
             loss = F.mean_squared_error(x_i, dec_x_i)
+            print('data loss ', loss.data)
             accum_loss = loss if accum_loss is None else accum_loss + loss
         return accum_loss
 
