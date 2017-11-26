@@ -28,7 +28,6 @@ class EncDecAD(chainer.Chain):
             x = self.train_source[sffindx[j:(j+batch_size) if (j+batch_size) < data_num else data_num]]
             self.H.reset_state()
             self.zerograds()
-            # calculate batch train loss
             loss = self.loss(x)
             loss.backward()
             self.optimizer.update()
@@ -75,7 +74,6 @@ class EncDecAD(chainer.Chain):
             e_minus_mu = one_line_T - mu_T
             yield np.dot((e_minus_mu.T, inv_sigma), e_minus_mu)
 
-    # もう一回lossを見直す!
     def loss(self, x):
         xp = cuda.cupy if self.gpu >= 0 else np
         # Encoder Side
@@ -99,7 +97,6 @@ class EncDecAD(chainer.Chain):
             x_i = x[:, i].reshape(row, 1).astype(xp.float32)
             dec_x_i = bar_x_i_list[i].data.astype(xp.float32)
             loss = F.mean_squared_error(x_i, dec_x_i)
-            print('data loss ', loss.data)
             accum_loss = loss if accum_loss is None else accum_loss + loss
         return accum_loss
 
@@ -111,7 +108,6 @@ class EncDecAD(chainer.Chain):
         for i in range(col):
             h_i = self.H(Variable(xp.array(line[:, i].reshape(row, 1), dtype=xp.float32)))
             h_i_list.append(xp.copy(h_i.data))
-            # これで, 各データが時系列で順番に入った時の, LSTMの内部状態が入る
         return h_i_list
 
     def decoder_x_i_list(self,last_h_i, length, test=False):
