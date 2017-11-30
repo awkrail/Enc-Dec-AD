@@ -39,7 +39,7 @@ class EncDecAD(chainer.Chain):
     def calc_gaussian_params(self):
         e_i_list = []
         # debugの時は全部で計算しない方がよさそう..
-        for one_line in self.test_source[:10]: # debug後は[:10]を外す
+        for one_line in self.test_source: 
             batch_one_line = one_line.reshape(1, one_line.shape[0])
             h_i_list = self.encoder_h_i_list(batch_one_line) 
             length = batch_one_line.shape[1]
@@ -70,8 +70,13 @@ class EncDecAD(chainer.Chain):
         mu_T = np.array([[mu]], dtype=np.float32).T
         inv_sigma = np.linalg.inv(sigma) # sigmaに逆行列がない..なんてことにはならない?
         for one_line in valid_X:
-            one_line_T = np.array([[one_line]], dtype=np.float32).T
-            e_minus_mu = one_line_T - mu_T
+            batch_one_line = one_line.reshape(1, one_line.shape[0])
+            h_i_list = self.encoder_h_i_list(batch_one_line)
+            length = batch_one_line.shape[1]
+            last_h_i = h_i_list[-1]
+            x_i_list = [x_i.data[0][0] for x_i in self.decoder_x_i_list(last_h_i, length, test=True)]
+            x_i_list_T = np.array(x_i_list, dtype=np.float32).T
+            e_minus_mu = x_i_list_T - mu_T
             yield np.dot((e_minus_mu.T, inv_sigma), e_minus_mu)
 
     def loss(self, x):
