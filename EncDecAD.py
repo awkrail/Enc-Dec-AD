@@ -39,7 +39,8 @@ class EncDecAD(chainer.Chain):
     def calc_gaussian_params(self):
         e_i_list = []
         # debugの時は全部で計算しない方がよさそう..
-        for one_line in self.test_source: 
+        for i, one_line in enumerate(self.test_source):
+            print('now {} line processing..'.format(i))
             batch_one_line = one_line.reshape(1, one_line.shape[0])
             h_i_list = self.encoder_h_i_list(batch_one_line) 
             length = batch_one_line.shape[1]
