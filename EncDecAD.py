@@ -16,6 +16,8 @@ class EncDecAD(chainer.Chain):
         self.test_source = xp.load(test_source)
         super(EncDecAD, self).__init__(
                 H = L.LSTM(1, hidden_n),
+                Wc1 = L.Linear(hidden_n, hidden_n),
+                Wc2 = L.Linear(hidden_n, hidden_n),
                 W = L.Linear(hidden_n, 1)
                 )
         self.optimizer = optimizers.Adam()
@@ -86,14 +88,15 @@ class EncDecAD(chainer.Chain):
         # calculate all h_t
         # last h_t is used for first decoder h_t initialization
         bar_h_i_list = self.encoder_h_i_list(x)
+        last_h_i = bar_h_i_list[-1]
+        # attention
+        c_t = self.c_t(bar_h_i_list[:-1], last_h_i)
+        bar_h_t = F.tanh(self.Wc1(c_t) + self.Wc2(last_h_i))
 
         # Decoder Side
-        # first_decode is made with last_h_i and W
-        # if you don't use batch_size, you can use x.shape[0]
-        length = x.shape[1]
-        last_h_i = bar_h_i_list[-1]
-        bar_x_i_list = self.decoder_x_i_list(last_h_i, length, test=False)
-
+        # first_decode is made with bar_h_i and W
+        bar_x_i_list = self.decoder_x_i_list(bar_h_t, bar_h_i_list)
+        
         # calculate the loss
         # loss is defined mean squared loss input and decoder x_i
         accum_loss = None
@@ -106,7 +109,7 @@ class EncDecAD(chainer.Chain):
             accum_loss = loss if accum_loss is None else accum_loss + loss
         return accum_loss
 
-    def encoder_h_i_list(self, line, test=False):
+    def encoder_h_i_list(self, line):
         xp = cuda.cupy if self.gpu >= 0 else np
         h_i_list = []
         row = line.shape[0]
@@ -116,12 +119,18 @@ class EncDecAD(chainer.Chain):
             h_i_list.append(xp.copy(h_i.data))
         return h_i_list
 
-    def decoder_x_i_list(self,last_h_i, length, test=False):
+    def decoder_x_i_list(self, bar_h_t, bar_h_i_list):
         decode_x_i_list = []
-        x_i = self.W(last_h_i)
+        x_i = self.W(bar_h_t)
+        length = len(bar_h_i_list)
         decode_x_i_list.append(x_i)
         for i in range(1, length):
             h_i = self.H(x_i)
-            x_i = self.W(h_i)
+            c_t = self.c_t(bar_h_i_list, h_t.data)
+            bar_h_t = F.tanh(self.Wc1(c_t)+self.Wc2(h_i))
+            x_i = self.W(bar_h_t)
             decode_x_i_list.append(x_i)
         return list(reversed(decode_x_i_list))
+
+    def c_t(self, bar_h_i_list, h_t):
+        pass
